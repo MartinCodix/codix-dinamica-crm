@@ -1,0 +1,180 @@
+/*
+  PrimeNG Brand Preset (global)
+  - Primary (actions/buttons): brand blue
+  - Highlight/selection (chips, selected rows, toggles, checkbox): brand yellow
+  - Surfaces/text tuned for light and dark using your Tailwind palette
+
+  Drop-in: imported by src/styles.css so all PrimeNG components inherit it.
+*/
+
+/* Light theme tokens */
+:root {
+  /* Brand palette shortcuts (from tailwind.config.js) */
+  --brand-blue-500: #21546D;
+  --brand-blue-600: #1d4b61;
+  --brand-yellow-500: #FCBC28;
+  --brand-yellow-400: #ffc22f;
+  --brand-yellow-300: #ffd052;
+  --brand-yellow-200: #ffe28a;
+  --brand-yellow-100: #ffefc2;
+  --brand-lightyellow-500: #FCD67A;
+  --brand-dark-700: #242424;
+  --brand-dark-600: #2b2b2b;
+  --brand-dark-500: #323232;
+  --brand-gray-300: #dcdcdc;
+  --brand-gray-200: #eaeaea;
+  --brand-gray-100: #f7f7f7;
+
+  /* Core tokens */
+  --p-primary-color: var(--brand-blue-500);          /* buttons, primary UI */
+  --p-primary-contrast-color: #ffffff;               /* on primary */
+  --p-primary-hover-color: var(--brand-blue-600);
+
+  --p-highlight-bg: var(--brand-yellow-500);         /* selected state across components */
+  --p-highlight-text-color: #1a1a1a;                 /* dark text on yellow */
+
+  --p-text-color: #323232;                           /* matches text-dark */
+  --p-text-muted-color: #7A7A7A;
+
+  --p-content-bg: #ffffff;                           /* cards, panels */
+  --p-content-color: var(--p-text-color);
+  --p-content-border-color: #e5e7eb;                 /* gray-200 */
+
+  --p-surface-ground: #f9fafb;                       /* app background */
+  --p-surface-section: #ffffff;                      /* sections */
+  --p-surface-card: #ffffff;                         /* cards */
+  --p-surface-overlay: #ffffff;                      /* dialogs/menus */
+
+  --p-overlay-content-bg: var(--p-surface-overlay);
+  --p-overlay-content-border-color: var(--p-content-border-color);
+
+  --p-inputtext-bg: #ffffff;
+  --p-inputtext-text-color: var(--p-text-color);
+  --p-inputtext-border-color: #d1d5db;               /* gray-300 */
+  --p-inputtext-focus-border-color: var(--brand-blue-500);
+
+  --p-focus-ring: 0 0 0 .2rem rgba(33, 84, 109, 0.25); /* blue focus ring */
+  --p-focus-ring-color: rgba(33, 84, 109, 0.25);
+
+  /* Radius & elevation to match your rounded-2xl + soft shadow */
+  --p-border-radius: 12px;
+  --p-button-border-radius: 12px;
+  --p-input-border-radius: 12px;
+  --p-card-border-radius: 16px;
+
+  /* Severity (tweak as needed) */
+  --p-info-color: var(--brand-blue-500);
+  --p-success-color: #16a34a;
+  --p-warning-color: var(--brand-yellow-500);
+  --p-danger-color: #dc2626;
+}
+
+/* Dark theme tokens (when <html class="dark">) */
+.dark {
+  --p-text-color: #ffffff;
+  --p-text-muted-color: #c0c0c0;
+
+  --p-content-bg: var(--brand-dark-600);             /* panels/cards */
+  --p-content-color: var(--p-text-color);
+  --p-content-border-color: #3a3a3a;
+
+  --p-surface-ground: #181818;                        /* page background */
+  --p-surface-section: var(--brand-dark-600);
+  --p-surface-card: var(--brand-dark-600);
+  --p-surface-overlay: var(--brand-dark-700);
+
+  --p-overlay-content-bg: var(--p-surface-overlay);
+  --p-overlay-content-border-color: var(--p-content-border-color);
+
+  --p-inputtext-bg: #1f1f1f;
+  --p-inputtext-text-color: #ffffff;
+  --p-inputtext-border-color: #4b4b4b;
+  --p-inputtext-focus-border-color: var(--brand-blue-500);
+
+  /* Keep semantic colors; primary remains blue, highlight remains yellow */
+  --p-focus-ring: 0 0 0 .2rem rgba(252, 188, 40, 0.35); /* slight yellow ring in dark */
+  --p-focus-ring-color: rgba(252, 188, 40, 0.35);
+}
+
+/* Optional: Button semantic shortcuts (many themes derive these automatically) */
+:root {
+  --p-button-primary-bg: var(--p-primary-color);
+  --p-button-primary-text-color: var(--p-primary-contrast-color);
+  --p-button-primary-hover-bg: var(--p-primary-hover-color);
+}
+.dark {
+  --p-button-primary-bg: var(--p-primary-color);
+  --p-button-primary-text-color: var(--p-primary-contrast-color);
+  --p-button-primary-hover-bg: var(--p-primary-hover-color);
+}
+
+/* Optional: selection uses yellow globally without wrappers */
+:root {
+  --p-highlight-focus-ring: rgba(252, 188, 40, 0.35);
+}
+.dark {
+  --p-highlight-focus-ring: rgba(252, 188, 40, 0.35);
+}
+
+/* ConfirmDialog overrides scoped to .confirm-logout */
+.confirm-logout.p-dialog,
+.confirm-logout.p-confirmdialog,
+.confirm-logout .p-dialog,
+.confirm-logout .p-confirmdialog,
+.confirm-logout .p-dialog-header,
+.confirm-logout .p-dialog-content,
+.confirm-logout .p-dialog-footer {
+  background: var(--p-overlay-content-bg) !important;
+  color: var(--p-content-color) !important;
+  border-color: var(--p-overlay-content-border-color) !important;
+}
+
+/* Remap success to brand yellow just within this dialog */
+.confirm-logout {
+  --p-success-color: var(--p-highlight-bg);
+  --p-success-contrast-color: var(--p-highlight-text-color);
+}
+
+/* Make the accept button use brand yellow instead of success green */
+.confirm-logout .p-confirmdialog-accept.p-button,
+.confirm-logout .p-confirmdialog-accept.p-button.p-button-text,
+.confirm-logout .p-confirmdialog-accept.p-button.p-button-outlined,
+.confirm-logout .p-button-success,
+.confirm-logout .p-button-primary {
+  background-color: var(--p-highlight-bg) !important;
+  border-color: var(--p-highlight-bg) !important;
+  color: var(--p-highlight-text-color) !important;
+}
+.confirm-logout .p-confirmdialog-accept.p-button:hover,
+.confirm-logout .p-confirmdialog-accept.p-button.p-button-text:hover,
+.confirm-logout .p-confirmdialog-accept.p-button.p-button-outlined:hover,
+.confirm-logout .p-button-success:hover,
+.confirm-logout .p-button-primary:hover {
+  background-color: var(--brand-lightyellow-500) !important;
+  border-color: var(--brand-lightyellow-500) !important;
+  filter: none !important;
+}
+
+/* Neutral style for reject */
+.confirm-logout .p-confirmdialog-reject.p-button,
+.confirm-logout .p-confirmdialog-reject.p-button.p-button-text,
+.confirm-logout .p-confirmdialog-reject.p-button.p-button-outlined {
+  background-color: #e5e7eb !important; /* gray-200 */
+  border-color: #e5e7eb !important;
+  color: #111827 !important; /* gray-900 */
+}
+.dark .confirm-logout .p-confirmdialog-reject.p-button {
+  background-color: #3a3a3a !important;
+  border-color: #3a3a3a !important;
+  color: #ffffff !important;
+}
+.confirm-logout .p-confirmdialog-reject.p-button:hover,
+.confirm-logout .p-confirmdialog-reject.p-button.p-button-text:hover,
+.confirm-logout .p-confirmdialog-reject.p-button.p-button-outlined:hover {
+  background-color: #d1d5db !important; /* gray-300 */
+  border-color: #d1d5db !important;
+}
+.dark .confirm-logout .p-confirmdialog-reject.p-button:hover {
+  background-color: #4b4b4b !important;
+  border-color: #4b4b4b !important;
+}

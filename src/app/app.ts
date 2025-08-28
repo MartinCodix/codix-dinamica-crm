@@ -1,12 +1,18 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, effect, inject } from '@angular/core';
+import { AuthStore } from './core/stores/auth.store';
+import { MainLayout } from './core/layouts/main.layout';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  standalone: true,
+  imports: [MainLayout],
+  template: `<app-layout />`,
 })
 export class App {
-  protected readonly title = signal('dinamica-crm');
+  private auth = inject(AuthStore);
+  constructor() {
+    effect(() => {
+      /* para debug de sesión */ this.auth.user();
+    });
+  }
 }

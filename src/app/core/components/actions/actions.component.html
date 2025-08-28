@@ -1,0 +1,35 @@
+<div class="relative inline-flex" [class.opacity-50]="disabled">
+  <button
+    type="button"
+    class="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+    (click)="toggle($event)"
+    [attr.aria-expanded]="open"
+    aria-haspopup="menu"
+    [disabled]="disabled"
+  >
+    <i class="pi pi-ellipsis-v"></i>
+  </button>
+  <div
+    *ngIf="open"
+    #menuRef
+    class="absolute right-0 z-30 w-44 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg shadow-lg py-1 text-sm text-gray-700 dark:text-dark-100 origin-top-right animate-scale-fade"
+    [ngClass]="direction === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'"
+    role="menu"
+  >
+    <button
+      *ngFor="let a of actions; trackBy: trackAction"
+      type="button"
+      (click)="onAction(a)"
+      class="w-full flex items-center gap-2 px-3 py-2 text-left rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-dark-600"
+      [ngClass]="
+        a.variant === 'danger'
+          ? 'text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30'
+          : 'text-gray-700 dark:text-dark-100'
+      "
+      role="menuitem"
+    >
+      <i *ngIf="a.icon" class="pi" [ngClass]="a.icon"></i>
+      <span class="flex-1 truncate">{{ a.label }}</span>
+    </button>
+  </div>
+</div>

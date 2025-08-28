@@ -1,0 +1,17 @@
+{
+  "common": { "save": "Guardar", "cancel": "Cancelar", "search": "Buscar" },
+  "auth": {
+    "email": "Correo",
+    "password": "Contraseña",
+    "remember": "Recuérdame",
+    "login": "Ingresar",
+    "forgot": "¿Olvidaste tu contraseña?"
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "clients": "Clientes",
+    "quotes": "Cotizaciones",
+    "orders": "Pedidos",
+    "profile": "Cuenta"
+  }
+}

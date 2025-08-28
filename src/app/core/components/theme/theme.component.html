@@ -1,0 +1,8 @@
+<button
+  type="button"
+  class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+  (click)="theme.toggle()"
+  aria-label="Alternar tema"
+>
+  <i class="pi" [ngClass]="theme.isDark() ? 'pi-sun' : 'pi-moon'"></i>
+</button>

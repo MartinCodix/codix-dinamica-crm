@@ -1,0 +1,38 @@
+<div class="min-h-screen grid grid-cols-1 lg:grid-cols-2 gap-2 p-2 bg-gray-50 dark:bg-dark-900">
+  <!-- Left side: dark panel with KPIs -->
+  <section class="relative overflow-hidden rounded-2xl shadow-sm" aria-label="Presentación Dinámica CRM">
+    <div class="absolute inset-0 bg-dark-500"></div>
+    <div class="absolute inset-0 rounded-2xl ring-1 ring-white/10"></div>
+    <div class="absolute top-5 left-5 h-16 w-16 grid place-items-center rounded-lg">
+      <img src="assets/logos/dinamica-crm-180x180-logo.png" alt="Dinámica" class="object-contain" />
+    </div>
+    <div class="relative h-full px-10 md:px-16 py-16 lg:py-20 flex flex-col justify-center">
+      <h1 class="text-white font-extrabold uppercase tracking-tight leading-none text-[48px] md:text-[64px] lg:text-[72px]">DINAMICA</h1>
+      <p class="mt-6 text-white/90 text-3xl md:text-4xl font-semibold leading-tight">
+        Con más de 25 años<br class="hidden md:block" />
+        de experiencia.
+      </p>
+      <div class="mt-10 relative pl-6 text-white">
+        <div class="absolute left-0 top-0 bottom-0 w-px bg-white/40"></div>
+        <div class="grid gap-8">
+          <div>
+            <p class="text-white/80 text-lg">Cotizaciones generadas.</p>
+            <p class="mt-1 text-4xl font-semibold tabular-nums">{{ cotizaciones | number }}</p>
+          </div>
+          <div>
+            <p class="text-white/80 text-lg">Pedidos despachados.</p>
+            <p class="mt-1 text-4xl font-semibold tabular-nums">{{ pedidos | number }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Right side: routed content (login form) -->
+  <section class="relative bg-white text-dark dark:bg-dark-700 dark:text-white rounded-2xl shadow-soft p-12 md:p-32 lg:p-40">
+    <router-outlet />
+  </section>
+
+  <!-- Floating theme toggle bottom-right (hidden on mobile) -->
+  <app-theme class="hidden md:block fixed bottom-4 right-4 z-50" />
+</div>

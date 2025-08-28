@@ -1,0 +1,22 @@
+<ng-container *ngIf="auth.user() as user; else content">
+  <div
+    class="min-h-screen bg-white text-dark dark:bg-dark-700 dark:text-white flex lg:flex-row"
+  >
+    <!-- Navigation (responsive: desktop sidebar / mobile bottom bar handled inside component) -->
+    <app-sidebar />
+
+    <!-- Content -->
+  <main class="flex-1 p-4 md:p-6 pb-20 lg:pb-6 overflow-x-hidden">
+      <router-outlet />
+    </main>
+
+    <!-- Floating theme toggle bottom-right (hidden on mobile) -->
+    <app-theme class="hidden md:block fixed bottom-4 right-4 z-50" />
+
+    <!-- Global confirm dialog mount -->
+    <app-confirm />
+  </div>
+</ng-container>
+<ng-template #content>
+  <router-outlet />
+</ng-template>

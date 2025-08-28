@@ -1,0 +1,35 @@
+<app-header title="Inicio" description="¡Bienvenido(a) de nuevo!" />
+<div class="grid gap-4">
+  <div class="grid md:grid-cols-4 gap-4">
+    <div
+      class="p-4 bg-white text-dark dark:bg-dark-600 dark:text-white rounded-2xl shadow-soft"
+      *ngFor="let k of kpis()"
+    >
+      <p class="text-sm text-gray-500">{{ k.subtitle }}</p>
+      <p class="text-2xl font-semibold">{{ k.value | number }}</p>
+      <p class="text-xs uppercase tracking-wide">{{ k.key }}</p>
+    </div>
+  </div>
+
+  <div
+    class="p-4 bg-white text-dark dark:bg-dark-600 dark:text-white rounded-2xl shadow-soft"
+  >
+    <h2 class="font-medium mb-2">Cotizaciones vs Pedidos (12 meses)</h2>
+    <!-- Placeholder de Chart; integra ngx-chart/primeng Chart si lo prefieres -->
+    <div class="grid grid-cols-12 gap-2 text-sm text-gray-600">
+      <ng-container *ngFor="let l of series().labels; let i = index">
+        <div class="col-span-1">{{ l }}</div>
+      </ng-container>
+    </div>
+  </div>
+
+  <div
+    class="p-4 bg-white text-dark dark:bg-dark-600 dark:text-white rounded-2xl shadow-soft"
+  >
+    <h2 class="font-medium mb-3">Actividades recientes</h2>
+    <div class="divide-y text-sm">
+      <div class="py-2">Se creó cotización Q-1023 para Sistemas Bajío</div>
+      <div class="py-2">Pedido P-778 confirmado para Tecnologías León</div>
+    </div>
+  </div>
+</div>
