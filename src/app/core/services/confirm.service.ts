@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
 export interface ConfirmOptions {
+  color?: string;
   header?: string;
   message: string;
   acceptLabel?: string;
@@ -14,7 +15,7 @@ export class ConfirmService {
   options = signal<ConfirmOptions | null>(null);
   private resolver: ((value: boolean) => void) | null = null;
 
-  ask(options: ConfirmOptions): Promise<boolean> {
+  ask = (options: ConfirmOptions): Promise<boolean> => {
     this.options.set({
       acceptLabel: 'Aceptar',
       rejectLabel: 'Cancelar',
@@ -24,21 +25,21 @@ export class ConfirmService {
     return new Promise<boolean>((resolve) => {
       this.resolver = resolve;
     });
-  }
+  };
 
-  accept() {
+  accept = () => {
     if (this.resolver) this.resolver(true);
     this.cleanup();
-  }
+  };
 
-  reject() {
+  reject = () => {
     if (this.resolver) this.resolver(false);
     this.cleanup();
-  }
+  };
 
-  private cleanup() {
+  cleanup = () => {
     this.visible.set(false);
     this.options.set(null);
     this.resolver = null;
-  }
+  };
 }

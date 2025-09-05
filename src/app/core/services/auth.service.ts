@@ -7,16 +7,23 @@ import { data } from '../mocks/usuarios.mock';
 export class AuthService {
   private store = inject(AuthStore);
 
-  login(name: string, password: string) {
-    const user = data.find((user) => user.nombre === name && user.password === password);
+  login = (correo: string, password: string, remember: boolean) => {
+    const user = data.find(
+      (user) => user.correo === correo && user.password === password
+    );
     if (user) {
-      this.store.login(user);
+      this.store.login(user, remember);
       return of(user).pipe(delay(600));
     }
     return throwError(() => new Error('Credenciales inválidas'));
-  }
+  };
 
-  current() {
+  logout = () => {
+    this.store.logout();
+    return of(null).pipe(delay(600));
+  };
+
+  current = () => {
     return this.store.user();
-  }
+  };
 }

@@ -1,5 +1,6 @@
 import { UsuarioType } from '../types/usuario.type';
 import { PaginationType } from '../types/pagination.type';
+import { PaginationOptionsType } from '../types/pagination-options';
 
 // Base manual con variedad (emails, estados, online/offline, etc.)
 export const base: UsuarioType[] = [
@@ -129,33 +130,27 @@ for (let i = base.length + 1; i <= TOTAL; i++) {
     correo: `usuario${i}@dinamica.com`,
     password: 'Dinamica123',
     activo: i % 11 !== 0, // algunos inactivos
-    fechaCreacion: new Date(Date.now() - 1000 * 60 * 60 * 24 * createdOffsetDays),
+    fechaCreacion: new Date(
+      Date.now() - 1000 * 60 * 60 * 24 * createdOffsetDays
+    ),
     fechaActualizacion: new Date(Date.now() - 1000 * 60 * updatedOffsetMinutes),
     ultimaConexion: new Date(Date.now() - 1000 * 60 * lastTimeOffsetMinutes),
     enLinea: i % 5 === 0 ? false : i % 3 === 0, // patrón mixto
   });
 }
 
-// Función de paginación para usuarios (similar a clientes)
-export interface PaginateUserOptions {
-  search?: string; // texto libre en campos string
-  sortBy?: keyof UsuarioType;
-  sortDir?: 'asc' | 'desc';
-  filters?: Partial<Record<keyof UsuarioType, any>>; // igualdad simple
-}
-
-export function paginateUsers(
+export const paginateUsers = (
   page: number = 1,
   pageSize: number = 10,
-  options: PaginateUserOptions = {}
-): PaginationType<UsuarioType> {
+  options: PaginationOptionsType<UsuarioType> = {}
+): PaginationType<UsuarioType> => {
   let list = [...extended];
 
-  const { search, sortBy, sortDir = 'asc', filters } = options;
+  const { search, sortBy, sortDir = 'asc', filters, sorts } = options;
 
   // Filtros exactos
   if (filters) {
-    list = list.filter(u =>
+    list = list.filter((u) =>
       Object.entries(filters).every(([k, v]) => {
         if (v === undefined || v === null || v === '') return true;
         const value: any = (u as any)[k];
@@ -171,31 +166,39 @@ export function paginateUsers(
   // Búsqueda textual simple en campos string principales
   if (search && search.trim()) {
     const q = search.trim().toLowerCase();
-    list = list.filter(u =>
-      [u.usuarioId, u.nombre].some(val => val?.toString().toLowerCase().includes(q))
+    list = list.filter((u) =>
+      [u.usuarioId, u.nombre, u.correo]
+        .filter(Boolean)
+        .some((val) => val!.toString().toLowerCase().includes(q))
     );
   }
 
-  // Ordenamiento
-  if (sortBy) {
+  // Ordenamiento múltiple (prioridad según orden en arreglo 'sorts')
+  const effectiveSorts: { key: keyof UsuarioType; dir: 'asc' | 'desc' }[] =
+    sorts && sorts.length
+      ? sorts
+      : sortBy
+      ? [{ key: sortBy, dir: sortDir }]
+      : [];
+
+  if (effectiveSorts.length) {
     list.sort((a: any, b: any) => {
-      let av = a[sortBy];
-      let bv = b[sortBy];
-      // Normalizar fechas
-      if (av instanceof Date) av = av.getTime();
-      if (bv instanceof Date) bv = bv.getTime();
-      // Normalizar booleanos
-      if (typeof av === 'boolean') av = av ? 1 : 0;
-      if (typeof bv === 'boolean') bv = bv ? 1 : 0;
-      if (av == null && bv != null) return sortDir === 'asc' ? -1 : 1;
-      if (av != null && bv == null) return sortDir === 'asc' ? 1 : -1;
-      if (av == null && bv == null) return 0;
-      if (typeof av === 'string' && typeof bv === 'string') {
-        const cmp = av.localeCompare(bv, 'es', { sensitivity: 'base' });
-        return sortDir === 'asc' ? cmp : -cmp;
+      for (const s of effectiveSorts) {
+        let av = a[s.key];
+        let bv = b[s.key];
+        if (av instanceof Date) av = av.getTime();
+        if (bv instanceof Date) bv = bv.getTime();
+        if (typeof av === 'boolean') av = av ? 1 : 0;
+        if (typeof bv === 'boolean') bv = bv ? 1 : 0;
+        if (av == null && bv != null) return s.dir === 'asc' ? -1 : 1;
+        if (av != null && bv == null) return s.dir === 'asc' ? 1 : -1;
+        if (av == null && bv == null) continue;
+        if (typeof av === 'string' && typeof bv === 'string') {
+          const cmp = av.localeCompare(bv, 'es', { sensitivity: 'base' });
+          if (cmp !== 0) return s.dir === 'asc' ? cmp : -cmp;
+        } else if (av > bv) return s.dir === 'asc' ? 1 : -1;
+        else if (av < bv) return s.dir === 'asc' ? -1 : 1;
       }
-      if (av > bv) return sortDir === 'asc' ? 1 : -1;
-      if (av < bv) return sortDir === 'asc' ? -1 : 1;
       return 0;
     });
   }
@@ -229,7 +232,7 @@ export function paginateUsers(
     isFirstPage: page === 1,
     isLastPage: page === totalPages,
   };
-}
+};
 
 // Exportaciones para compatibilidad y debugging
 export const data = base; // mantiene el export original (primeros usuarios base)

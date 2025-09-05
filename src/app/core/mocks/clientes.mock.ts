@@ -1,8 +1,9 @@
 import { ClienteType } from '../types/cliente.type';
+import { PaginationOptionsType } from '../types/pagination-options';
 import { PaginationType } from '../types/pagination.type';
 
 // Base manual de 20 clientes iniciales para variedad de datos
-export const base: ClienteType[] = [
+const base: ClienteType[] = [
   {
     clienteId: 'c1',
     clave: 'CLI-001',
@@ -192,24 +193,16 @@ for (let i = base.length + 1; i <= TOTAL; i++) {
   });
 }
 
-// Función de paginación simulada
-export interface PaginateCustomerOptions {
-  search?: string;
-  sortBy?: keyof ClienteType;
-  sortDir?: 'asc' | 'desc';
-  filters?: Partial<Record<keyof ClienteType, any>>;
-}
-
-export function paginateCustomers(
+export const paginateCustomers = (
   page: number = 1,
   pageSize: number = 10,
-  options: PaginateCustomerOptions = {}
-): PaginationType<ClienteType> {
+  options: PaginationOptionsType<ClienteType> = {}
+): PaginationType<ClienteType> => {
   let list = [...extended];
-  const { search, sortBy, sortDir = 'asc', filters } = options;
+  const { search, sortBy, sortDir = 'asc', filters, sorts } = options;
 
   if (filters) {
-    list = list.filter(c =>
+    list = list.filter((c) =>
       Object.entries(filters).every(([k, v]) => {
         if (v === undefined || v === null || v === '') return true;
         const value: any = (c as any)[k];
@@ -224,26 +217,34 @@ export function paginateCustomers(
 
   if (search && search.trim()) {
     const q = search.trim().toLowerCase();
-    list = list.filter(c =>
-      [c.clienteId, c.clave, c.nombre, c.tipo, c.contacto]
+    list = list.filter((c) =>
+      [c.clienteId, c.clave, c.nombre, c.tipo, c.contacto, c.notas]
         .filter(Boolean)
-        .some(val => val!.toString().toLowerCase().includes(q))
+        .some((val) => val!.toString().toLowerCase().includes(q))
     );
   }
 
-  if (sortBy) {
+  const effectiveSorts: { key: keyof ClienteType; dir: 'asc' | 'desc' }[] =
+    sorts && sorts.length
+      ? sorts
+      : sortBy
+      ? [{ key: sortBy, dir: sortDir }]
+      : [];
+
+  if (effectiveSorts.length) {
     list.sort((a: any, b: any) => {
-      let av = a[sortBy];
-      let bv = b[sortBy];
-      if (av == null && bv != null) return sortDir === 'asc' ? -1 : 1;
-      if (av != null && bv == null) return sortDir === 'asc' ? 1 : -1;
-      if (av == null && bv == null) return 0;
-      if (typeof av === 'string' && typeof bv === 'string') {
-        const cmp = av.localeCompare(bv, 'es', { sensitivity: 'base' });
-        return sortDir === 'asc' ? cmp : -cmp;
+      for (const s of effectiveSorts) {
+        let av = a[s.key];
+        let bv = b[s.key];
+        if (av == null && bv != null) return s.dir === 'asc' ? -1 : 1;
+        if (av != null && bv == null) return s.dir === 'asc' ? 1 : -1;
+        if (av == null && bv == null) continue;
+        if (typeof av === 'string' && typeof bv === 'string') {
+          const cmp = av.localeCompare(bv, 'es', { sensitivity: 'base' });
+          if (cmp !== 0) return s.dir === 'asc' ? cmp : -cmp;
+        } else if (av > bv) return s.dir === 'asc' ? 1 : -1;
+        else if (av < bv) return s.dir === 'asc' ? -1 : 1;
       }
-      if (av > bv) return sortDir === 'asc' ? 1 : -1;
-      if (av < bv) return sortDir === 'asc' ? -1 : 1;
       return 0;
     });
   }
@@ -276,6 +277,6 @@ export function paginateCustomers(
     isFirstPage: page === 1,
     isLastPage: page === totalPages,
   };
-}
+};
 
 export const __allCustomers = extended; // opcional para debugging

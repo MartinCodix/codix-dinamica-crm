@@ -12,11 +12,11 @@ export class ThemeService {
     this.apply(initial);
   }
 
-  toggle() { this.apply(!this.isDark()); }
+  toggle = () => { this.apply(!this.isDark()); }
 
-  setDark(v: boolean) { this.apply(v); }
+  setDark = (v: boolean) => { this.apply(v); }
 
-  private apply(v: boolean) {
+  apply = (v: boolean) => {
     this.isDark.set(v);
     const root = document.documentElement; // <html>
     root.classList.toggle('dark', v);
