@@ -1,0 +1,414 @@
+<app-form
+  title="Módulo de Pedidos"
+  description="Gestión y seguimiento de pedidos"
+  icon="pi-shopping-cart"
+  iconColor="blue"
+  [editing]="editing"
+  entityName="pedido"
+>
+  <form
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    class="space-y-6"
+  >
+    <!-- Cabecera principal 2 columnas -->
+    <div class="grid md:grid-cols-2 gap-6">
+      <!-- Columna izquierda -->
+      <div class="flex flex-col gap-6">
+        <!-- Cliente typeahead -->
+        <div
+          class="relative"
+          (click)="stopClick($event)"
+          (focusin)="showPanelCliente = clientes.length > 0"
+        >
+          <label class="block text-sm font-medium mb-1">Cliente</label>
+          <app-input
+            [(ngModel)]="searchCliente"
+            (ngModelChange)="onSearchCliente($event)"
+            placeholder="Buscar cliente..."
+            size="md"
+            [ngModelOptions]="{ standalone: true }"
+          ></app-input>
+          <button
+            *ngIf="selectedCliente"
+            type="button"
+            (click)="clearCliente($event)"
+            class="absolute inset-y-0 right-2 top-6 flex items-center text-gray-400 hover:text-gray-600"
+          >
+            <i class="pi pi-times text-sm"></i>
+          </button>
+          <div
+            *ngIf="showPanelCliente"
+            class="absolute z-20 mt-1 w-full rounded-xl bg-white dark:bg-dark-700 shadow-lg ring-1 ring-black/5 max-h-64 overflow-auto text-sm"
+          >
+            <div
+              *ngFor="let cliente of clientes; trackBy: trackByCliente"
+              (click)="pickCliente(cliente)"
+              class="px-3 py-2 hover:bg-gray-50 dark:hover:bg-dark-600 cursor-pointer border-b border-gray-100 dark:border-dark-600 last:border-0"
+            >
+              <div class="font-medium">{{ cliente.nombre }}</div>
+              <div class="text-xs text-gray-500">
+                {{ cliente.clave }} - {{ cliente.contacto }}
+              </div>
+            </div>
+          </div>
+          <div class="mt-1 h-5 text-xs overflow-hidden flex items-center gap-1">
+            <span
+              *ngIf="selectedCliente"
+              class="text-green-600 dark:text-green-400"
+            >
+              ✓ {{ selectedCliente.clave }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Vendedor typeahead -->
+        <div
+          class="relative"
+          (click)="stopClick($event)"
+          (focusin)="showVendedorPanel = usuarios.length > 0"
+        >
+          <label class="block text-sm font-medium mb-1">Vendedor</label>
+          <app-input
+            [(ngModel)]="searchVendedor"
+            (ngModelChange)="onSearchVendedor($event)"
+            placeholder="Buscar vendedor..."
+            size="md"
+            [ngModelOptions]="{ standalone: true }"
+          ></app-input>
+          <button
+            *ngIf="selectedVendedor"
+            type="button"
+            (click)="clearVendedor($event)"
+            class="absolute inset-y-0 right-2 top-6 flex items-center text-gray-400 hover:text-gray-600"
+          >
+            <i class="pi pi-times text-sm"></i>
+          </button>
+          <div
+            *ngIf="showVendedorPanel"
+            class="absolute z-20 mt-1 w-full rounded-xl bg-white dark:bg-dark-700 shadow-lg ring-1 ring-black/5 max-h-64 overflow-auto text-sm"
+          >
+            <div
+              *ngFor="let vendedor of usuarios; trackBy: trackByVendedor"
+              (click)="pickVendedor(vendedor)"
+              class="px-3 py-2 hover:bg-gray-50 dark:hover:bg-dark-600 cursor-pointer border-b border-gray-100 dark:border-dark-600 last:border-0"
+            >
+              <div class="font-medium">{{ vendedor.nombre }}</div>
+              <div class="text-xs text-gray-500">{{ vendedor.correo }}</div>
+            </div>
+          </div>
+          <div class="mt-1 h-5 text-xs overflow-hidden flex items-center gap-1">
+            <span
+              *ngIf="selectedVendedor"
+              class="text-green-600 dark:text-green-400"
+            >
+              ✓ {{ selectedVendedor.correo }}
+            </span>
+          </div>
+        </div>
+
+        <app-input
+          label="Fecha"
+          type="date"
+          formControlName="fecha"
+          size="md"
+        />
+      </div>
+
+      <!-- Columna derecha -->
+      <div class="flex flex-col gap-6">
+        <app-input
+          label="Vía de embarque"
+          type="select"
+          formControlName="viaEmbarqueId"
+          [options]="viaEmbarqueOptions"
+          size="md"
+        />
+        <app-input
+          label="Uso CFDI"
+          type="select"
+          formControlName="usoCFDI"
+          [options]="usoCFDIOptions"
+          size="md"
+          [placeholderOption]="false"
+        />
+        <div class="grid grid-cols-2 gap-4">
+          <app-input label="OC" formControlName="oc" size="md" />
+          <app-input label="Contrato" formControlName="contrato" size="md" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Segunda fila: moneda y tipo de cambio -->
+    <div class="grid md:grid-cols-4 gap-6">
+      <app-input
+        label="Precios en"
+        type="select"
+        formControlName="preciosEn"
+        [options]="monedaOptions"
+        size="sm"
+        [placeholderOption]="false"
+      />
+      <div>
+        <app-input
+          label="Tipo cambio USD"
+          type="number"
+          formControlName="tipoCambioDls"
+          [step]="0.01"
+          size="sm"
+        />
+        <div
+          *ngIf="suggestedTipoCambio && form.get('preciosEn')?.value === 'DLS'"
+          class="col-span-full text-end text-[11px] text-gray-500 dark:text-gray-400 mt-1"
+        >
+          Banxico: ${{ suggestedTipoCambio | number : "1.2-2" }}
+          <button
+            type="button"
+            (click)="applySuggestedTipoCambio()"
+            class="ml-1 text-blue-600 hover:text-blue-700"
+          >
+            Aplicar
+          </button>
+        </div>
+      </div>
+      <app-input
+        label="Horario entrega"
+        formControlName="horarioEntrega"
+        placeholder="ej: 8:00 - 12:00"
+        size="sm"
+      />
+      <div class="flex items-center gap-4 pt-5">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" formControlName="especial" class="rounded" />
+          <span class="text-sm">Especial</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" formControlName="urgente" class="rounded" />
+          <span class="text-sm">Urgente</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Detalles -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+          Detalles del Pedido
+        </h3>
+        <button
+          type="button"
+          (click)="addDetalle()"
+          class="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-5 py-2.5 rounded-xl text-sm"
+        >
+          <i class="pi pi-plus"></i> Agregar producto
+        </button>
+      </div>
+
+      <!-- Tabla (desktop) -->
+      <div
+        class="overflow-x-auto rounded-xl ring-1 ring-dark-100 dark:ring-dark-700 hidden md:block"
+      >
+        <table class="min-w-full text-xs">
+          <thead class="bg-dark-50 dark:bg-dark-600">
+            <tr>
+              <th class="px-3 py-2 text-left font-medium">Tipo</th>
+              <th class="px-3 py-2 text-left font-medium">Proveedor</th>
+              <th class="px-3 py-2 text-left font-medium">SKU</th>
+              <th class="px-3 py-2 text-left font-medium">Línea</th>
+              <th class="px-3 py-2 text-left font-medium">Cant.</th>
+              <th class="px-3 py-2 text-left font-medium">Descripción</th>
+              <th class="px-3 py-2 text-right font-medium">Costo Unit.</th>
+              <th class="px-3 py-2 text-right font-medium">Costo Total</th>
+              <th class="px-3 py-2 text-right font-medium">Precio Unit.</th>
+              <th class="px-3 py-2 text-right font-medium">Precio Total</th>
+              <th class="px-3 py-2 text-center font-medium">Acción</th>
+            </tr>
+          </thead>
+          <tbody formArrayName="detalles">
+            <tr
+              *ngFor="
+                let detalle of form.controls.detalles.controls;
+                let i = index;
+                trackBy: trackByDetalle
+              "
+              [formGroupName]="i"
+              class="border-b border-dark-100 dark:border-dark-700"
+            >
+              <td class="px-3 py-2">
+                <app-input
+                  type="select"
+                  formControlName="tipo"
+                  [options]="[
+                    { value: 'RUN RATE', label: 'RUN RATE' },
+                    { value: 'BIG DEAL', label: 'BIG DEAL' }
+                  ]"
+                  size="sm"
+                />
+              </td>
+              <td class="px-3 py-2">
+                <app-input formControlName="proveedor" />
+              </td>
+              <td class="px-3 py-2">
+                <app-input formControlName="sku" />
+              </td>
+              <td class="px-3 py-2">
+                <app-input formControlName="linea" />
+              </td>
+              <td class="px-3 py-2">
+                <app-input formControlName="cantidad" type="number" min="1" />
+              </td>
+              <td class="px-3 py-2">
+                <app-input formControlName="descripcion" />
+              </td>
+              <td class="px-3 py-2 text-right">
+                <app-input
+                  type="number"
+                  formControlName="costoOfertadoUnitario"
+                  step="0.01"
+                />
+              </td>
+              <td class="px-3 py-2 text-right">
+                ${{ lineCostoTotal(i) | number : "1.2-2" }}
+              </td>
+              <td class="px-3 py-2 text-right">
+                <app-input
+                  type="number"
+                  formControlName="precioVentaUnitario"
+                  step="0.01"
+                />
+              </td>
+              <td class="px-3 py-2 text-right">
+                ${{ linePrecioTotal(i) | number : "1.2-2" }}
+              </td>
+              <td class="px-3 py-2 text-center">
+                <button
+                  type="button"
+                  (click)="removeDetalle(i)"
+                  class="text-red-500 hover:text-red-700"
+                  [disabled]="form.controls.detalles.length <= 1"
+                >
+                  <i class="pi pi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Lista mobile -->
+      <div class="md:hidden space-y-3" formArrayName="detalles">
+        <button
+          type="button"
+          (click)="addDetalle()"
+          class="w-full inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium"
+        >
+          <i class="pi pi-plus"></i> Agregar producto
+        </button>
+        <div
+          *ngFor="
+            let detalle of form.controls.detalles.controls;
+            let i = index;
+            trackBy: trackByDetalle
+          "
+          [formGroupName]="i"
+          class="rounded-2xl bg-dark-50 dark:bg-dark-600 shadow-sm p-4 flex flex-col gap-3"
+        >
+          <div class="flex justify-between items-center">
+            <span class="text-sm font-medium">Producto {{ i + 1 }}</span>
+            <button
+              type="button"
+              (click)="removeDetalle(i)"
+              class="text-red-500 hover:text-red-700"
+              [disabled]="form.controls.detalles.length <= 1"
+            >
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <app-input
+              label="Tipo"
+              type="select"
+              formControlName="tipo"
+              [options]="[
+                { value: 'RUN RATE', label: 'RUN RATE' },
+                { value: 'BIG DEAL', label: 'BIG DEAL' }
+              ]"
+              size="sm"
+            />
+            <app-input
+              label="Proveedor"
+              formControlName="proveedor"
+              size="sm"
+            />
+            <app-input label="SKU" formControlName="sku" size="sm" />
+            <app-input label="Línea" formControlName="linea" size="sm" />
+            <app-input
+              label="Cantidad"
+              type="number"
+              formControlName="cantidad"
+              size="sm"
+            />
+            <app-input
+              label="Costo Unit."
+              type="number"
+              formControlName="costoOfertadoUnitario"
+              size="sm"
+              step="0.01"
+            />
+            <app-input
+              label="Precio Unit."
+              type="number"
+              formControlName="precioVentaUnitario"
+              size="sm"
+              step="0.01"
+            />
+          </div>
+          <app-input
+            label="Descripción"
+            formControlName="descripcion"
+            size="sm"
+          />
+          <div class="text-right text-sm">
+            <div>Costo Total: ${{ lineCostoTotal(i) | number : "1.2-2" }}</div>
+            <div>
+              Precio Total: ${{ linePrecioTotal(i) | number : "1.2-2" }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-row justify-end text-end gap-4">
+        <div class="text-xs text-gray-500 space-y-1">
+          <div>Subtotal: ${{ subtotal | number : "1.2-2" }}</div>
+          <div>IVA (16%): ${{ ivaAl16 | number : "1.2-2" }}</div>
+          <div class="font-semibold text-gray-900 dark:text-white">
+            Total: ${{ total | number : "1.2-2" }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="flex flex-col md:flex-row md:items-center md:justify-end gap-4 pt-2"
+    >
+      <div class="flex items-center justify-end gap-3">
+        <button
+          type="button"
+          (click)="back()"
+          class="px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-dark-50 dark:bg-dark-500 dark:hover:bg-dark-600 text-dark-500 dark:text-dark-100"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          [disabled]="form.invalid || submitting"
+          class="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold disabled:opacity-60 px-6 py-2.5 rounded-xl text-sm"
+        >
+          <i class="pi pi-check" *ngIf="!submitting"></i>
+          <i class="pi pi-spin pi-spinner" *ngIf="submitting"></i>
+          {{ editing ? "Actualizar" : "Crear" }} Pedido
+        </button>
+      </div>
+    </div>
+  </form>
+</app-form>
