@@ -15,8 +15,9 @@ import { ThemeComponent } from '../components/theme/theme.component';
 export class MainLayout {
   public auth = inject(AuthStore);
   private router = inject(Router);
-  logout() {
+  // Ya no navega en el constructor; la ruta protegida + template condicionan la vista
+  logout = () => {
     this.auth.logout();
     this.router.navigateByUrl('/login');
-  }
+  };
 }

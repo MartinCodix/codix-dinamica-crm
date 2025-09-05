@@ -1,12 +1,12 @@
 import { Component, effect, inject } from '@angular/core';
 import { AuthStore } from './core/stores/auth.store';
-import { MainLayout } from './core/layouts/main.layout';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [MainLayout],
-  template: `<app-layout />`,
+  imports: [RouterOutlet],
+  template: `<router-outlet />`,
 })
 export class App {
   private auth = inject(AuthStore);

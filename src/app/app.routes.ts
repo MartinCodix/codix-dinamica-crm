@@ -7,10 +7,13 @@ import { InicioPage } from './pages/inicio/inicio.page';
 import { ClientesPage } from './pages/clientes/clientes.page';
 import { ClientePage } from './pages/cliente/cliente.page';
 import { PedidosPage } from './pages/pedidos/pedidos.page';
+import { PedidoPage } from './pages/pedido/pedido.page';
 import { PerfilPage } from './pages/perfil/perfil.page';
 import { UsuariosPage } from './pages/usuarios/usuarios.page';
 import { CotizacionesPage } from './pages/cotizaciones/cotizaciones.page';
 import { UsuarioPage } from './pages/usuario/usuario.page';
+import { CotizacionPage } from './pages/cotizacion/cotizacion.page';
+import { MainLayout } from './core/layouts/main.layout';
 
 export const routes: Routes = [
   {
@@ -36,48 +39,22 @@ export const routes: Routes = [
   {
     path: '',
     canActivate: [AuthGuard],
+    component: MainLayout,
     children: [
-      {
-        path: 'inicio',
-        component: InicioPage,
-      },
-      {
-        path: 'clientes',
-        component: ClientesPage,
-      },
-      {
-        path: 'clientes/nuevo',
-        component: ClientePage,
-      },
-      {
-        path: 'clientes/:id',
-        component: ClientePage,
-      },
-      {
-        path: 'usuarios',
-        data: { roles: ['admin'] },
-        component: UsuariosPage,
-      },
-      {
-        path: 'usuarios/nuevo',
-        component: UsuarioPage,
-      },
-      {
-        path: 'usuarios/:id',
-        component: UsuarioPage,
-      },
-      {
-        path: 'cotizaciones',
-        component: CotizacionesPage,
-      },
-      {
-        path: 'pedidos',
-        component: PedidosPage,
-      },
-      {
-        path: 'perfil',
-        component: PerfilPage,
-      },
+      { path: 'inicio', component: InicioPage },
+      { path: 'clientes', component: ClientesPage },
+      { path: 'clientes/nuevo', component: ClientePage },
+      { path: 'clientes/:id', component: ClientePage },
+      { path: 'usuarios', data: { roles: ['admin'] }, component: UsuariosPage },
+      { path: 'usuarios/nuevo', component: UsuarioPage },
+      { path: 'usuarios/:id', component: UsuarioPage },
+      { path: 'cotizaciones/nuevo', component: CotizacionPage },
+      { path: 'cotizaciones/:id', component: CotizacionPage },
+      { path: 'cotizaciones', component: CotizacionesPage },
+      { path: 'pedidos/nuevo', component: PedidoPage },
+      { path: 'pedidos/:id', component: PedidoPage },
+      { path: 'pedidos', component: PedidosPage },
+      { path: 'perfil', component: PerfilPage },
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     ],
   },
