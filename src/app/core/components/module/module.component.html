@@ -1,0 +1,411 @@
+<app-header
+  [title]="config.moduleInfo.title"
+  [description]="
+    'Catálogo de ' + config.moduleInfo.itemName + ' en la aplicación'
+  "
+/>
+
+<div
+  class="hidden md:block bg-dark-50 text-dark dark:bg-dark-600 dark:text-white rounded-2xl shadow-sm overflow-hidden"
+>
+  <!-- Header con información del módulo -->
+  <div
+    class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6"
+  >
+    <div class="flex items-center gap-3">
+      <div
+        class="w-12 h-12 rounded-xl bg-blue-100 text-blue-500 flex items-center justify-center text-2xl"
+      >
+        <i class="pi" [ngClass]="config.moduleInfo.icon"></i>
+      </div>
+      <div>
+        <div class="text-gray-800 dark:text-gray-100 font-semibold">
+          {{ config.moduleInfo.title }}
+        </div>
+        <div class="text-xs text-gray-500 dark:text-gray-400">
+          {{ pagination?.total || 0 }} resultado(s)
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <button
+        class="inline-flex items-center gap-2 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 dark:hover:bg-blue-600 font-semibold px-5 py-2.5 rounded-xl text-sm"
+        (click)="onNewItem()"
+      >
+        <i class="pi pi-plus"></i>
+        Nuevo
+      </button>
+    </div>
+  </div>
+
+  <!-- Barra de búsqueda -->
+  <div class="p-6 bg-white dark:bg-dark-500">
+    <app-input
+      type="search"
+      name="q"
+      inputId="q"
+      [placeholder]="config.searchPlaceholder"
+      [ngModel]="search"
+      (ngModelChange)="onSearch($event)"
+      class="w-full"
+    />
+  </div>
+
+  <!-- Estado de carga -->
+  <div
+    *ngIf="loading"
+    class="flex flex-col items-center justify-center py-24 gap-4"
+  >
+    <i class="pi pi-spin pi-spinner text-3xl text-blue-500"></i>
+    <p class="text-sm text-gray-500">{{ config.loadingText }}</p>
+  </div>
+
+  <!-- Tabla de datos -->
+  <div *ngIf="!loading && data.length > 0" class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead>
+        <tr
+          class="text-left text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-dark-100 dark:border-dark-500"
+        >
+          <th
+            *ngFor="let column of config.columns"
+            class="py-2 px-4 whitespace-nowrap"
+            [class.cursor-pointer]="column.sortable"
+            (click)="column.sortable ? onSort(column.sortKey || column.key) : null"
+            [style.text-align]="column.align || 'left'"
+            [style.width]="column.width"
+          >
+            <span class="inline-flex items-center gap-1">
+              {{ column.label }}
+              <i *ngIf="column.sortable" class="{{ getIcon(column.sortKey || column.key) }} text-[10px]"></i>
+            </span>
+          </th>
+          <th class="py-2 px-4 whitespace-nowrap"></th>
+        </tr>
+      </thead>
+      <tbody
+        class="bg-white dark:bg-dark-500 divide-y divide-dark-50 dark:divide-dark-600"
+      >
+        <tr
+          *ngFor="let item of data; let i = index; trackBy: trackBy"
+          class="hover:bg-dark-50/60 dark:hover:bg-dark-600/50"
+        >
+          <td
+            *ngFor="let column of config.columns"
+            class="py-2 px-4"
+            [style.text-align]="column.align || 'left'"
+            [class.font-medium]="column.align !== 'right'"
+          >
+            <ng-container [ngSwitch]="column.type">
+              <!-- Status personalizado con icono -->
+              <span
+                *ngSwitchCase="'status'"
+                [ngClass]="
+                  formatCellValue(getCellValue(item, column), column).class
+                "
+              >
+                <i
+                  *ngIf="
+                    formatCellValue(getCellValue(item, column), column).icon
+                  "
+                  class="pi"
+                  [ngClass]="
+                    formatCellValue(getCellValue(item, column), column).icon
+                  "
+                ></i>
+                {{ formatCellValue(getCellValue(item, column), column).text }}
+              </span>
+              <!-- Otros tipos -->
+              <span *ngSwitchDefault>
+                {{ formatCellValue(getCellValue(item, column), column).text }}
+              </span>
+            </ng-container>
+          </td>
+          <td class="py-2 px-4 text-end">
+            <app-actions
+              [actions]="actionsProvider(item)"
+            ></app-actions>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Estado vacío -->
+  <div
+    *ngIf="!loading && data.length === 0"
+    class="py-24 flex flex-col items-center justify-center text-center gap-4"
+  >
+    <div
+      class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-4xl text-gray-400"
+    >
+      <i class="pi" [ngClass]="config.emptyState.icon"></i>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-700">
+      {{ config.emptyState.title }}
+    </h3>
+    <p class="text-sm text-gray-500 max-w-md">
+      {{ config.emptyState.description }}
+    </p>
+    <button
+      *ngIf="config.emptyState.actionLabel"
+      (click)="onNewItem()"
+      class="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium px-5 py-2.5 rounded-xl text-sm shadow"
+    >
+      <i class="pi pi-plus"></i>
+      {{ config.emptyState.actionLabel }}
+    </button>
+  </div>
+
+  <!-- Paginación -->
+  <div
+    *ngIf="!loading && pagination"
+    class="p-6 flex flex-col gap-4 md:grid md:grid-cols-3 md:items-center"
+  >
+    <!-- Columna izquierda: tamaño de página -->
+    <div class="flex items-center gap-2 order-2 md:order-1 justify-start">
+      <label class="text-xs text-gray-500">Tamaño:</label>
+      <select
+        class="rounded-lg bg-white dark:bg-dark-700 text-xs px-2 py-1"
+        [ngModel]="pageSize"
+        (ngModelChange)="onPageSize($event)"
+      >
+        <option *ngFor="let size of pageSizeOptions" [ngValue]="size">
+          {{ size }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Columna centro: resumen -->
+    <div class="text-center text-xs text-gray-500 order-1 md:order-2">
+      Página {{ pagination.page }} de {{ pagination.totalPages }} ·
+      Mostrando {{ pagination.from }}-{{ pagination.to }} de
+      {{ pagination.total }} registros
+    </div>
+
+    <!-- Columna derecha: controles de paginación -->
+    <div class="flex items-center gap-2 flex-wrap justify-end order-3">
+      <button
+        type="button"
+        class="px-2 py-1 rounded-lg bg-white dark:bg-dark-700 disabled:opacity-40"
+        [disabled]="pagination.isFirstPage || loading"
+        (click)="goTo(1)"
+      >
+        <i class="pi pi-angle-double-left text-xs"></i>
+      </button>
+      
+      <button
+        type="button"
+        class="px-2 py-1 rounded-lg bg-white dark:bg-dark-700 disabled:opacity-40"
+        [disabled]="!pagination.hasPrevious || loading"
+        (click)="goTo(pagination.previousPage!)"
+      >
+        <i class="pi pi-angle-left text-xs"></i>
+      </button>
+      
+      <span class="text-xs text-gray-500">
+        {{ pagination.page }} / {{ pagination.totalPages }}
+      </span>
+      
+      <button
+        type="button"
+        class="px-2 py-1 rounded-lg bg-white dark:bg-dark-700 disabled:opacity-40"
+        [disabled]="!pagination.hasNext || loading"
+        (click)="goTo(pagination.nextPage!)"
+      >
+        <i class="pi pi-angle-right text-xs"></i>
+      </button>
+      
+      <button
+        type="button"
+        class="px-2 py-1 rounded-lg bg-white dark:bg-dark-700 disabled:opacity-40"
+        [disabled]="pagination.isLastPage || loading"
+        (click)="goTo(pagination.totalPages)"
+      >
+        <i class="pi pi-angle-double-right text-xs"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Vista móvil (simplified version) -->
+<div class="md:hidden space-y-4">
+  <div
+    class="bg-dark-50 dark:bg-dark-600 rounded-2xl shadow-sm p-5 flex flex-col gap-4"
+  >
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 rounded-xl bg-blue-100 text-blue-500 flex items-center justify-center text-xl"
+        >
+          <i class="pi" [ngClass]="config.moduleInfo.icon"></i>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold">{{ config.moduleInfo.title }}</span>
+          <span class="text-[10px] text-gray-500" *ngIf="pagination">
+            {{ pagination.total }} registros
+          </span>
+        </div>
+      </div>
+      <button
+        class="inline-flex items-center gap-2 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 dark:hover:bg-blue-600 font-semibold px-5 py-2.5 rounded-xl text-sm"
+        (click)="onNewItem()"
+      >
+        <i class="pi pi-plus text-xs"></i>
+        Nuevo
+      </button>
+    </div>
+    <app-input
+      type="search"
+      name="q-mobile"
+      inputId="q-mobile"
+      [placeholder]="config.searchPlaceholder"
+      [ngModel]="search"
+      (ngModelChange)="onSearch($event)"
+      size="sm"
+    />
+  </div>
+
+  <!-- Loading móvil -->
+  <div
+    *ngIf="loading"
+    class="flex flex-col items-center justify-center py-20 gap-3"
+  >
+    <i class="pi pi-spin pi-spinner text-2xl text-blue-500"></i>
+    <p class="text-sm text-gray-500">{{ config.loadingText }}</p>
+  </div>
+
+  <!-- Empty móvil -->
+  <div
+    *ngIf="!loading && data.length === 0"
+    class="py-20 flex flex-col items-center justify-center text-center gap-3"
+  >
+    <div
+      class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-2xl text-gray-400"
+    >
+      <i class="pi" [ngClass]="config.emptyState.icon"></i>
+    </div>
+    <h3 class="text-base font-semibold text-gray-700 dark:text-gray-200">
+      {{ config.emptyState.title }}
+    </h3>
+    <p class="text-xs text-gray-500 max-w-[220px]">
+      {{ config.emptyState.description }}
+    </p>
+    <button
+      *ngIf="config.emptyState.actionLabel"
+      (click)="onNewItem()"
+      class="inline-flex items-center gap-2 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 dark:hover:bg-blue-600 font-semibold px-5 py-2.5 rounded-xl text-sm"
+    >
+      <i class="pi pi-plus text-sm"></i>
+      {{ config.emptyState.actionLabel }}
+    </button>
+  </div>
+
+  <!-- Lista de cards móvil -->
+  <div class="space-y-3" *ngIf="!loading && data.length > 0">
+    <div
+      *ngFor="let item of data; trackBy: trackBy"
+      class="bg-white dark:bg-dark-500 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-dark-600"
+    >
+      <!-- Contenido dinámico de la card basado en las columnas -->
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex-1">
+          <div *ngFor="let column of config.columns.slice(0, 2)" class="mb-1">
+            <span class="text-xs text-gray-500 uppercase tracking-wide"
+              >{{ column.label }}:</span
+            >
+            <div class="font-medium text-gray-800 dark:text-gray-100">
+              <ng-container [ngSwitch]="column.type">
+                <span
+                  *ngSwitchCase="'status'"
+                  [ngClass]="
+                    formatCellValue(getCellValue(item, column), column).class
+                  "
+                >
+                  <i
+                    *ngIf="
+                      formatCellValue(getCellValue(item, column), column).icon
+                    "
+                    class="pi"
+                    [ngClass]="
+                      formatCellValue(getCellValue(item, column), column).icon
+                    "
+                  ></i>
+                  {{ formatCellValue(getCellValue(item, column), column).text }}
+                </span>
+                <span *ngSwitchDefault>
+                  {{ formatCellValue(getCellValue(item, column), column).text }}
+                </span>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+        <app-actions
+          [actions]="actionsProvider(item)"
+          prefer="down"
+        ></app-actions>
+      </div>
+
+      <!-- Mostrar columnas adicionales si las hay -->
+      <div
+        *ngIf="config.columns.length > 2"
+        class="pt-2 border-t border-gray-100 dark:border-dark-600"
+      >
+        <div
+          *ngFor="let column of config.columns.slice(2)"
+          class="flex justify-between items-center py-1"
+        >
+          <span class="text-xs text-gray-500">{{ column.label }}:</span>
+          <span class="text-sm font-medium">
+            <ng-container [ngSwitch]="column.type">
+              <span
+                *ngSwitchCase="'status'"
+                [ngClass]="
+                  formatCellValue(getCellValue(item, column), column).class
+                "
+              >
+                <i
+                  *ngIf="
+                    formatCellValue(getCellValue(item, column), column).icon
+                  "
+                  class="pi"
+                  [ngClass]="
+                    formatCellValue(getCellValue(item, column), column).icon
+                  "
+                ></i>
+                {{ formatCellValue(getCellValue(item, column), column).text }}
+              </span>
+              <span *ngSwitchDefault>
+                {{ formatCellValue(getCellValue(item, column), column).text }}
+              </span>
+            </ng-container>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paginación móvil simple -->
+  <div
+    *ngIf="!loading && pagination"
+    class="pt-2 pb-6 flex items-center justify-center gap-3 text-xs text-gray-500"
+  >
+    <button
+      type="button"
+      class="px-3 py-1 bg-white dark:bg-dark-600 border border-gray-300 dark:border-dark-400 rounded-lg disabled:opacity-50"
+      [disabled]="!pagination.hasPrevious"
+      (click)="goTo(pagination.previousPage!)"
+    >
+      Anterior
+    </button>
+    <span> Página {{ pagination.page }} de {{ pagination.totalPages }} </span>
+    <button
+      type="button"
+      class="px-3 py-1 bg-white dark:bg-dark-600 border border-gray-300 dark:border-dark-400 rounded-lg disabled:opacity-50"
+      [disabled]="!pagination.hasNext"
+      (click)="goTo(pagination.nextPage!)"
+    >
+      Siguiente
+    </button>
+  </div>
+</div>

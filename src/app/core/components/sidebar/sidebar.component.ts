@@ -2,7 +2,7 @@ import { Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { ConfirmService } from '../../services/confirm.service';
-import { AuthStore } from '../../stores/auth.store';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -11,7 +11,7 @@ import { AuthStore } from '../../stores/auth.store';
   templateUrl: './sidebar.component.html',
 })
 export class SidebarComponent implements OnDestroy {
-  private auth = inject(AuthStore);
+  private auth = inject(AuthService);
   private router = inject(Router);
   private confirm = inject(ConfirmService);
 
@@ -24,49 +24,45 @@ export class SidebarComponent implements OnDestroy {
   private collapseTimer?: number;
 
   // Hover handlers
-  onEnter() {
+  onEnter = () => {
     window.clearTimeout(this.collapseTimer);
     if (!this.collapsed) return; // already expanded
     this.expandTimer = window.setTimeout(() => {
       this.collapsed = false;
     }, this.expandTimeout);
-  }
+  };
 
-  onLeave() {
+  onLeave = () => {
     window.clearTimeout(this.expandTimer);
     if (this.collapsed) return; // already collapsed
-    this.scheduleCollapse();
-  }
-
-  private scheduleCollapse() {
     window.clearTimeout(this.collapseTimer);
     this.collapseTimer = window.setTimeout(() => {
       this.collapsed = true;
     }, this.collapseTimeout);
-  }
+  };
 
-  private clearTimers() {
+  ngOnDestroy = (): void => {
     window.clearTimeout(this.expandTimer);
     window.clearTimeout(this.collapseTimer);
-  }
+  };
 
-  ngOnDestroy(): void {
-    this.clearTimers();
-  }
-
-  logout() {
-    this.auth.logout();
-    this.router.navigateByUrl('/login');
-  }
-
-  async confirmLogout() {
-    const ok = await this.confirm.ask({
-      header: 'Cerrar sesión',
-      message: '¿Seguro que deseas salir de tu cuenta?',
-      acceptLabel: 'Salir',
-      rejectLabel: 'Cancelar',
-      iconClass: 'pi pi-exclamation-triangle',
-    });
-    if (ok) this.logout();
-  }
+  logout = async () => {
+    await this.confirm
+      .ask({
+        color: 'yellow',
+        header: 'Cerrar sesión',
+        message: '¿Seguro que deseas salir de tu cuenta?',
+        acceptLabel: 'Salir',
+        rejectLabel: 'Cancelar',
+        iconClass: 'pi pi-exclamation-triangle',
+      })
+      .then((ok) => {
+        if (ok)
+          this.auth.logout().subscribe({
+            next: () => {
+              this.router.navigateByUrl('/login');
+            },
+          });
+      });
+  };
 }
