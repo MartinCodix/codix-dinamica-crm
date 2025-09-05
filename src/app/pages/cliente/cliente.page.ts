@@ -1,91 +1,117 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, HostListener, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { InputComponent } from '../../core/components/input/input.component';
+import { FormComponent } from '../../core/components/form/form.component';
 import { ClienteService } from '../../core/services/cliente.service';
 import { ClienteType } from '../../core/types/cliente.type';
-import { HeaderComponent } from '../../core/components/header/header.component';
-import { CheckboxComponent } from '../../core/components/checkbox/checkbox.component';
+import { ConfirmService } from '../../core/services/confirm.service';
 
 @Component({
-	standalone: true,
-	selector: 'app-cliente',
-	imports: [CommonModule, ReactiveFormsModule, InputComponent, HeaderComponent, CheckboxComponent],
-	templateUrl: './cliente.page.html'
+  standalone: true,
+  selector: 'app-cliente',
+  imports: [CommonModule, ReactiveFormsModule, InputComponent, FormComponent],
+  templateUrl: './cliente.page.html',
 })
 export class ClientePage implements OnInit {
-	private fb = inject(FormBuilder);
-	private route = inject(ActivatedRoute);
-	private router = inject(Router);
-	private service = inject(ClienteService);
+  private fb = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
-	loading = false;
-	submitting = false;
-	editing = false;
-	id: string | null = null;
+  private clienteService = inject(ClienteService);
+  private confirmService = inject(ConfirmService);
 
-	types = ['Mayorista', 'Minorista', 'Consultor'];
+  loading = false;
+  editing = false;
 
-	form = this.fb.group({
-		clienteId: [''],
-		clave: [''],
-		nombre: ['', Validators.required],
-		tipo: ['', Validators.required],
-		contacto: [''],
-		notas: [''],
-		activo: [false],
-	});
+  types = ['Mayorista', 'Minorista', 'Consultor'];
 
-	get f() { return this.form.controls; }
+  form = this.fb.group({
+    clienteId: [''],
+    clave: [''],
+    nombre: ['', Validators.required],
+    tipo: ['', Validators.required],
+    contacto: [''],
+    notas: [''],
+    activo: [false],
+  });
 
-	ngOnInit() {
-		this.id = this.route.snapshot.paramMap.get('id');
-		if (this.id && this.id !== 'nuevo') {
-			this.editing = true;
-			this.load(this.id);
-		}
-	}
+  ngOnInit(): void {
+    this.route.paramMap.subscribe((params) => {
+      const id = params.get('id');
 
-	load(id: string) {
-		this.loading = true;
-		this.service.get(id).subscribe(res => {
-			if (res.status === 'success' && res.data) {
-				const c = res.data as ClienteType;
-				this.form.patchValue(c);
-			}
-			this.loading = false;
-		});
-	}
+      if (id) {
+        this.editing = true;
+        this.get(id);
+      } else {
+        this.editing = false;
+      }
+    });
+  }
 
-	submit() {
-		if (this.form.invalid) {
-			this.form.markAllAsTouched();
-			return;
-		}
-		this.submitting = true;
-			const { clienteId, ...rest } = this.form.value;
-			const value: Partial<ClienteType> = {
-				...rest,
-				clave: rest.clave || undefined as any,
-				nombre: rest.nombre || '',
-				tipo: rest.tipo || '',
-				contacto: rest.contacto || '',
-				notas: rest.notas || undefined,
-				activo: rest.activo ?? true,
-			} as any;
-		if (this.editing && this.id) {
-			this.service.update(this.id, value).subscribe(res => {
-				this.submitting = false;
-				if (res.status === 'success') this.back();
-			});
-		} else {
-			this.service.create(value).subscribe(res => {
-				this.submitting = false;
-				if (res.status === 'success') this.back();
-			});
-		}
-	}
+  get = (id: string) => {
+    this.loading = true;
+    this.clienteService.read(id).subscribe({
+      next: (response) => {
+        if (response.status === 'success' && response.data) {
+          this.form.patchValue({
+            ...(response.data as ClienteType),
+          });
+        } else {
+          console.warn('[ClientePage] respuesta inesperada', response);
+        }
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('[ClientePage] error cargando cliente', err);
+        this.loading = false;
+      },
+    });
+  };
 
-	back() { this.router.navigate(['/clientes']); }
+  onSubmit = async () => {
+    this.confirmService
+      .ask({
+        header: `${this.editing ? 'Actualizar' : 'Crear nuevo'} cliente`,
+        message: `¿Seguro que deseas ${
+          this.editing ? 'actualizar este' : 'crear un nuevo'
+        } cliente?`,
+        acceptLabel: `Sí, ${this.editing ? 'actualizar' : 'crear'}`,
+        rejectLabel: 'No, cancelar',
+        iconClass: 'pi pi-exclamation-triangle',
+        color: 'blue',
+      })
+      .then((ok) => {
+        if (ok) {
+          if (this.form.invalid) {
+            this.form.markAllAsTouched();
+            return;
+          }
+          const value: Partial<ClienteType> = {
+            ...this.form.value,
+          } as ClienteType;
+          if (this.editing && this.form.value.clienteId) {
+            this.clienteService
+              .update(this.form.value.clienteId, value)
+              .subscribe((res) => {
+                if (res.status === 'success') this.goBack();
+              });
+          } else {
+            this.clienteService.create(value).subscribe((res) => {
+              if (res.status === 'success') this.goBack();
+            });
+          }
+        }
+      });
+  };
+
+  goBack = () => {
+    this.router.navigate(['/clientes']);
+  };
+
+  @HostListener('document:keydown.escape')
+  onEscape = () => {
+    this.goBack();
+  };
 }

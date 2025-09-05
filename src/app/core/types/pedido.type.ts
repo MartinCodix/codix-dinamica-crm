@@ -5,6 +5,7 @@ import { ViaEmbarqueType } from './via-emabrque.type';
 
 export interface PedidoType {
   pedidoId: string;
+  cotizacionId?: string; // Referencia a la cotización origen (opcional para pedidos directos)
   vendedor: UsuarioType;
   fecha: Date;
   cliente: ClienteType;

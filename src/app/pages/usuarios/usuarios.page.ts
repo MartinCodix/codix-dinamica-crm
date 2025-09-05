@@ -1,51 +1,95 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HeaderComponent } from '../../core/components/header/header.component';
-import { InputComponent } from '../../core/components/input/input.component';
-import { ResponseType } from '../../core/types/response.type';
-import { PaginationType } from '../../core/types/pagination.type';
-import { ActionsComponent } from '../../core/components/actions/actions.component';
-import { ActionType } from '../../core/types/action.type';
+import { Router } from '@angular/router';
+
+import { ModuleComponent } from '../../core/components/module/module.component';
 import { UsuarioService } from '../../core/services/usuario.service';
+import { ConfirmService } from '../../core/services/confirm.service';
+
 import { UsuarioType } from '../../core/types/usuario.type';
+import { PaginationType } from '../../core/types/pagination.type';
+import { ResponseType } from '../../core/types/response.type';
+import { ActionType } from '../../core/types/action.type';
+import { TableType } from '../../core/types/table.type';
 
 @Component({
   standalone: true,
   selector: 'app-usuarios',
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    FormsModule,
-    HeaderComponent,
-    InputComponent,
-    ActionsComponent,
-  ],
+  imports: [CommonModule, ModuleComponent],
   templateUrl: './usuarios.page.html',
 })
 export class UsuariosPage {
-  private service = inject(UsuarioService);
-  private fb = inject(FormBuilder);
   private router = inject(Router);
-  users = signal([] as UsuarioType[]);
+  private usuarioService = inject(UsuarioService);
+  private confirmService = inject(ConfirmService);
+
+  config: TableType<UsuarioType> = {
+    columns: [
+      {
+        key: 'nombre',
+        label: 'Nombre',
+        sortable: true,
+        type: 'text',
+        align: 'left',
+      },
+      {
+        key: 'correo',
+        label: 'Correo',
+        sortable: true,
+        type: 'text',
+        align: 'left',
+      },
+      {
+        key: 'enLinea',
+        label: 'Estatus',
+        sortable: true,
+        type: 'status',
+        align: 'left',
+        render: (user: UsuarioType) => ({
+          text: user.enLinea ? 'Activo' : 'Inactivo',
+          class: `inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full ${
+            user.enLinea ? 'text-green-600' : 'text-gray-400'
+          }`,
+          icon: user.enLinea ? 'pi-circle-fill' : 'pi-circle',
+        }),
+      },
+    ],
+    emptyState: {
+      icon: 'pi-inbox',
+      title: 'No hay usuarios registrados',
+      description:
+        'Cree un nuevo usuario para comenzar a gestionar el sistema.',
+      actionLabel: 'Nuevo usuario',
+    },
+    moduleInfo: {
+      icon: 'pi-building',
+      title: 'Usuarios',
+      itemName: 'usuarios',
+    },
+    searchPlaceholder: 'Buscar por nombre o correo...',
+    loadingText: 'Cargando usuarios...',
+  };
+  
+  usuarios = signal([] as UsuarioType[]);
   pagination = signal<PaginationType<UsuarioType> | null>(null);
-  q = '';
+  search = '';
   pageSizeOptions = [5, 10, 20, 50];
   pageSize = 10;
-  sortBy: keyof UsuarioType | null = null;
-  sortDir: 'asc' | 'desc' = 'asc';
+  sorts: { key: string; dir: 'asc' | 'desc' }[] = [];
+  loading = false;
+  editing = false;
+  usuarioId: string | null = null;
 
-  isLoading: boolean = false;
-  isEditing: boolean = false;
-  menuId: string | null = null; // kept for potential external control
+  constructor() {
+    this.list(1, this.pageSize);
+  }
 
-  actions(user: UsuarioType): ActionType[] {
+  actions = (user: UsuarioType): ActionType[] => {
     return [
       {
         label: 'Editar',
         icon: 'pi-pencil',
-        handler: () => this.open(user),
+        handler: () => this.onMenu(user),
       },
       {
         label: 'Eliminar',
@@ -54,113 +98,87 @@ export class UsuariosPage {
         handler: () => this.remove(user),
       },
     ];
-  }
+  };
 
-  trackByUser(_index: number, u: UsuarioType) {
-    return u?.usuarioId || _index;
-  }
-
-  constructor() {
-    this.list(1, this.pageSize);
-  }
-
-  list(page: number = 1, pageSize: number = this.pageSize) {
-    console.log(
-      `GET /api/users?page=${page}&pageSize=${pageSize}&q=${this.q}&sortBy=${this.sortBy}&sortDir=${this.sortDir}`
-    );
-    this.isLoading = true;
-    this.service
+  list = (page: number = 1, pageSize: number = this.pageSize) => {
+    this.loading = true;
+    this.usuarioService
       .list(page, pageSize, {
-        search: this.q || undefined,
-        sortBy: this.sortBy || undefined,
-        sortDir: this.sortDir,
+        search: this.search || undefined,
+        sorts: this.sorts.length
+          ? this.sorts.map((s) => ({
+              key: s.key as keyof UsuarioType,
+              dir: s.dir,
+            }))
+          : undefined,
       })
       .subscribe({
         next: (response: ResponseType<PaginationType<UsuarioType>>) => {
-          if (response.status === 'success' && response.data) {
-            this.pagination.set(response.data);
-            this.users.set(response.data.items);
-            this.pageSize = response.data.pageSize;
-          } else if (response.status === 'error') {
-            console.error('Error fetching users', response.message);
-          } else {
-            console.warn('Unexpected response', response);
-          }
-          this.isLoading = false;
+          this.usuarios.set(response.data?.items || []);
+          this.pagination.set(response.data);
+          this.loading = false;
+        },
+        error: () => {
+          this.loading = false;
         },
       });
-  }
+  };
 
-  changePageSize(size: any) {
-    const n = Number(size);
-    if (!Number.isFinite(n) || n <= 0) return;
-    this.pageSize = n;
+  remove = async (usuario: UsuarioType) => {
+    await this.confirmService
+      .ask({
+        header: 'Eliminar usuario',
+        message: '¿Seguro que deseas eliminar este usuario?',
+        acceptLabel: 'Eliminar',
+        rejectLabel: 'Cancelar',
+        iconClass: 'pi pi-exclamation-triangle',
+      })
+      .then((ok) => {
+        if (ok) {
+          console.log('Eliminar usuario:', usuario.usuarioId);
+          // Aquí iría la lógica de eliminación
+          this.list(1, this.pageSize);
+        }
+      });
+  };
+
+  onSearch = (search: string) => {
+    this.search = search;
     this.list(1, this.pageSize);
-  }
+  };
 
-  onSearchChange() {
-    // Reinicia a primera página con nueva búsqueda
-    this.list(1, this.pageSize);
-  }
-
-  toggleSort(column: keyof UsuarioType) {
-    if (this.sortBy === column) {
-      // alternar asc -> desc -> ninguno
-      if (this.sortDir === 'asc') {
-        this.sortDir = 'desc';
+  onSort = (column: string) => {
+    const idx = this.sorts.findIndex((s) => s.key === column);
+    if (idx === -1) {
+      this.sorts.push({ key: column, dir: 'asc' });
+    } else {
+      if (this.sorts[idx].dir === 'asc') {
+        this.sorts[idx].dir = 'desc';
       } else {
-        // quitar orden
-        this.sortBy = null;
-        this.sortDir = 'asc';
+        this.sorts.splice(idx, 1);
       }
-    } else {
-      this.sortBy = column;
-      this.sortDir = 'asc';
     }
     this.list(1, this.pageSize);
-  }
+  };
 
-  goTo(page: number) {
-    if (!this.pagination()) return;
-    const p = Math.min(Math.max(1, page), this.pagination()!.totalPages);
-    if (p !== this.pagination()!.page) {
-      this.list(p, this.pageSize);
-    }
-  }
-
-  remove(user: any) {
-    console.log('DELETE /api/users/{id}', user);
-    this.menuId = null;
-  }
-
-  open(user?: any | null) {
-    this.menuId = null;
+  onMenu = (user?: UsuarioType | null) => {
+    this.usuarioId = null;
     if (user) {
-      const id = user.usuarioId || user.userId || user.id;
-      if (!id) {
-        console.warn('Registro sin identificador válido', user);
-        return;
-      }
-      this.router.navigate(['/usuarios', id]);
+      this.usuarioId = user.usuarioId;
+      this.editing = true;
+      this.router.navigate([`/usuarios/${user.usuarioId}`]);
     } else {
-      this.router.navigate(['/usuarios', 'nuevo']);
+      this.editing = false;
+      this.router.navigate(['/usuarios/nuevo']);
     }
-  }
+  };
 
-  sortIcon(column: keyof UsuarioType): string {
-    if (this.sortBy !== column) return 'pi text-dark-400';
-    return this.sortDir === 'asc'
-      ? 'pi pi-chevron-up text-dark-400'
-      : 'pi pi-chevron-down text-dark-400';
-  }
+  onPageSize = (size: number) => {
+    this.pageSize = size;
+    this.list(1, this.pageSize);
+  };
 
-  @HostListener('document:click')
-  close() {
-    this.menuId = null;
-  }
-
-  @HostListener('document:keydown.escape')
-  escape() {
-    this.menuId = null;
-  }
+  goTo = (page: number) => {
+    this.list(page, this.pageSize);
+  };
 }

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, HostListener, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -9,144 +9,145 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { InputComponent } from '../../core/components/input/input.component';
-import { HeaderComponent } from '../../core/components/header/header.component';
-import { CheckboxComponent } from '../../core/components/checkbox/checkbox.component';
+import { FormComponent } from '../../core/components/form/form.component';
 import { UsuarioType } from '../../core/types/usuario.type';
 import { UsuarioService } from '../../core/services/usuario.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 
 @Component({
   standalone: true,
   selector: 'app-usuario',
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    InputComponent,
-    HeaderComponent,
-    CheckboxComponent,
-  ],
+  imports: [CommonModule, ReactiveFormsModule, InputComponent, FormComponent],
   templateUrl: './usuario.page.html',
 })
 export class UsuarioPage implements OnInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private api = inject(UsuarioService);
+
+  private usuarioService = inject(UsuarioService);
+  private confirmService = inject(ConfirmService);
 
   loading = false;
-  saving = false;
-  edit = false;
-  id: string | null = null;
-
-  // Validator compacto
-  private static passwordConfirmation(
-    g: AbstractControl
-  ): ValidationErrors | null {
-    const p = g.get('password')?.value || '';
-    const c = g.get('confirmarPassword')?.value || '';
-    if (!p && !c) return null; // no cambio
-    if (!p || !c) return { pwIncomplete: true };
-    if (p !== c) return { pwMismatch: true };
-    return null;
-  }
+  editing = false;
+  error = '';
 
   form = this.fb.group(
     {
       usuarioId: [''],
       nombre: ['', Validators.required],
+      correo: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.minLength(6)]],
       confirmarPassword: [''],
       activo: [false],
     },
-    { validators: UsuarioPage.passwordConfirmation }
+    {
+      validators: (g: AbstractControl): ValidationErrors | null => {
+        const password = g.get('password')?.value || '';
+        const confirmPassword = g.get('confirmarPassword')?.value || '';
+        if (!password && !confirmPassword) return null; // no cambio
+        if (!password || !confirmPassword) return { incomplete: true };
+        if (password !== confirmPassword) return { mismatch: true };
+        return null;
+      },
+    }
   );
 
-  get f() {
-    return this.form.controls;
-  }
-
   ngOnInit() {
-    this.id = this.route.snapshot.paramMap.get('id');
-    if (this.id && this.id !== 'nuevo') {
-      this.edit = true;
-      this.load(this.id);
-    } else {
-      this.setPasswordRules();
-    }
+    this.route.paramMap.subscribe((params) => {
+      const id = params.get('id');
+
+      if (id) {
+        this.editing = true;
+        this.get(id);
+      }
+
+      const password = this.form.get('password');
+      const confirmPassword = this.form.get('confirmarPassword');
+
+      if (!password || !confirmPassword) return;
+
+      if (this.editing) {
+        password.setValidators([Validators.minLength(6)]);
+        confirmPassword.setValidators([]);
+      } else {
+        password.setValidators([Validators.required, Validators.minLength(6)]);
+        confirmPassword.setValidators([Validators.required]);
+      }
+
+      password.updateValueAndValidity({ emitEvent: false });
+      confirmPassword.updateValueAndValidity({ emitEvent: false });
+
+      this.form.updateValueAndValidity({ emitEvent: false });
+    });
   }
 
-  private setPasswordRules() {
-    const p = this.form.get('password');
-    const c = this.form.get('confirmarPassword');
-    if (!p || !c) return;
-    if (this.edit) {
-      p.setValidators([Validators.minLength(6)]);
-      c.setValidators([]);
-    } else {
-      p.setValidators([Validators.required, Validators.minLength(6)]);
-      c.setValidators([Validators.required]);
-    }
-    p.updateValueAndValidity({ emitEvent: false });
-    c.updateValueAndValidity({ emitEvent: false });
-    this.form.updateValueAndValidity({ emitEvent: false });
-  }
-
-  private load(id: string) {
+  get = (id: string) => {
     this.loading = true;
-    this.api.get(id).subscribe((res) => {
-      if (res.status === 'success' && res.data) {
-        const u = res.data as UsuarioType;
+    this.usuarioService.get(id).subscribe((response) => {
+      if (response.status === 'success' && response.data) {
+        const usuario = response.data as UsuarioType;
         this.form.patchValue({
-          usuarioId: (u as any).usuarioId || (u as any).id || id,
-          nombre: (u as any).nombre || (u as any).name || '',
-          password: '',
-          confirmarPassword: '',
-          activo: (u as any).activo ?? (u as any).active ?? true,
+          ...usuario,
         });
       }
-      this.setPasswordRules();
       this.loading = false;
     });
-  }
+  };
 
-  passwordMessage(): string {
-    if (this.form.hasError('pwIncomplete')) return 'Complete ambos campos';
-    if (this.form.hasError('pwMismatch')) return 'No coinciden';
-    return '';
-  }
+  onSubmit = async () => {
+    this.confirmService
+      .ask({
+        header: `${this.editing ? 'Actualizar' : 'Crear nuevo'} cliente`,
+        message: `¿Seguro que deseas ${
+          this.editing ? 'actualizar este' : 'crear un nuevo'
+        } cliente?`,
+        acceptLabel: `Sí, ${this.editing ? 'actualizar' : 'crear'}`,
+        rejectLabel: 'No, cancelar',
+        iconClass: 'pi pi-exclamation-triangle',
+        color: 'blue',
+      })
+      .then((ok) => {
+        if (ok) {
+          if (this.form.invalid) {
+            this.form.markAllAsTouched();
+            return;
+          }
+          const value: Partial<UsuarioType> = {
+            ...this.form.value,
+          } as UsuarioType;
+          if (this.editing && this.form.value.usuarioId) {
+            this.usuarioService
+              .update(this.form.value.usuarioId, value)
+              .subscribe((res) => {
+                if (res.status === 'success') this.goBack();
+              });
+          } else {
+            this.usuarioService.create(value).subscribe((res) => {
+              if (res.status === 'success') this.goBack();
+            });
+          }
+        }
+      });
+  };
 
-  passwordInvalid(): boolean {
+  confirmPassword = (): boolean => {
+    this.error = '';
+    if (this.form.hasError('incomplete')) this.error = 'Complete ambos campos';
+    if (this.form.hasError('mismatch')) this.error = 'No coinciden';
     return (
-      !!this.passwordMessage() ||
-      (this.f.password.touched && this.f.password.invalid)
+      !!this.error &&
+      this.form.controls.password.touched &&
+      this.form.controls.password.invalid
     );
-  }
+  };
 
-  save() {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    this.saving = true;
-    const { usuarioId, password, confirmarPassword, ...rest } = this.form
-      .value as any;
-    const payload: any = {
-      ...rest,
-      nombre: rest.nombre || '',
-      activo: rest.activo ?? true,
-    };
-    if (password && confirmarPassword && !this.form.errors)
-      payload.password = password;
-    const obs =
-      this.edit && this.id
-        ? this.api.update(this.id, payload)
-        : this.api.create(payload);
-    obs.subscribe((r) => {
-      this.saving = false;
-      if (r.status === 'success') this.back();
-    });
-  }
-
-  back() {
+  goBack() {
     this.router.navigate(['/usuarios']);
   }
+
+  @HostListener('document:keydown.escape')
+  escape = () => {
+    this.goBack();
+  };
 }

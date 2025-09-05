@@ -8,7 +8,6 @@ import { CheckboxComponent } from '../../core/components/checkbox/checkbox.compo
 import { AuthService } from '../../core/services/auth.service';
 
 // Mock KPIs
-import { DataMock } from '../../core/mocks/data.mock';
 import { DashboardService } from '../../core/services/dashboard.service';
 
 @Component({
@@ -29,7 +28,6 @@ export class LoginPage {
   private authService = inject(AuthService);
   private dashboardService = inject(DashboardService);
   private router = inject(Router);
-  private data = inject(DataMock);
 
   // ui state
   loading = false;
@@ -66,10 +64,10 @@ export class LoginPage {
     this.error = '';
 
     const { correo, password } = this.form.getRawValue();
-    this.authService.login(correo!, password!).subscribe({
+    this.authService.login(correo!, password!, this.remember).subscribe({
       next: () => {
         this.loading = false;
-        this.router.navigateByUrl('/dashboard');
+        this.router.navigateByUrl('/inicio');
       },
       error: (e: Error) => {
         this.loading = false;

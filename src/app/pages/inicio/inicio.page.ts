@@ -1,6 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
 import { DecimalPipe, CommonModule } from '@angular/common';
-import { DataMock } from '../../core/mocks/data.mock';
 import { HeaderComponent } from '../../core/components/header/header.component';
 import { DashboardService } from '../../core/services/dashboard.service';
 
@@ -11,7 +10,6 @@ import { DashboardService } from '../../core/services/dashboard.service';
   imports: [CommonModule, DecimalPipe, HeaderComponent],
 })
 export class InicioPage {
-  private api = inject(DataMock);
   private service = inject(DashboardService);
   kpis = signal([] as any[]);
   series = signal({ labels: [], quotes: [], orders: [] } as any);
@@ -19,6 +17,5 @@ export class InicioPage {
     this.service
       .getKPIs()
       .subscribe((response) => this.kpis.set(response.data));
-    this.api.getSeries().subscribe((s) => this.series.set(s));
   }
 }
