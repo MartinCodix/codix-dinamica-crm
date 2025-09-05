@@ -1,2 +1,16 @@
-<app-header title="Pedidos" />
-<div>pedidos works!</div>
+<app-module
+  [config]="config"
+  [data]="pedidos()"
+  [pagination]="pagination()"
+  [loading]="loading"
+  [search]="search"
+  [pageSizeOptions]="pageSizeOptions"
+  [pageSize]="pageSize"
+  [sorts]="sorts"
+  [actionsProvider]="actions"
+  (searchChange)="onSearch($event)"
+  (sortChange)="onSort($event)"
+  (pageSizeChange)="onPageSize($event)"
+  (pageChange)="goTo($event)"
+  (newItemClick)="onMenu()"
+/>
